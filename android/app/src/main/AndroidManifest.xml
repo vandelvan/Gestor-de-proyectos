@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.gestor_de_proyectos">
    <application
-        android:label="gestor_de_proyectos"
+        android:label="Gestor de proyectos empresarial"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
