@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:gestor_de_proyectos/login.dart';
 
 class Usuarios extends StatefulWidget {
   const Usuarios({Key? key}) : super(key: key);
@@ -56,7 +57,17 @@ class _UsuariosState extends State<Usuarios> {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, '/');
+                    Navigator.of(context).pushAndRemoveUntil(
+                      // the new route
+                      MaterialPageRoute(
+                        builder: (BuildContext context) => const LogIn(),
+                      ),
+
+                      // this function should return true when we're done removing routes
+                      // but because we want to remove all other screens, we make it
+                      // always return false
+                      (Route route) => false,
+                    );
                   },
                   child: const Text("Salir"),
                   style: ButtonStyle(
