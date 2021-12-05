@@ -95,7 +95,7 @@ class _LogInState extends State<LogIn> {
                                         content: Text("Verifique sus datos."),
                                       ));
                             } else {
-                              Navigator.pushNamed(context, 'proyectos/',
+                              Navigator.pushNamed(context, 'home/',
                                   arguments: value);
                             }
                           }).whenComplete(() => setState(() {

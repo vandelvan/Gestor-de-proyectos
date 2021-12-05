@@ -5,12 +5,5 @@ class User {
   String correo = "";
   int rol = 0;
   int area = 0;
-  User(i, u, n, c, r, a) {
-    id = i;
-    username = u;
-    nombre = n;
-    correo = c;
-    rol = r;
-    area = a;
-  }
+  User(this.id, this.username, this.nombre, this.correo, this.rol, this.area);
 }

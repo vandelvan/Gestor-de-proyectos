@@ -2,9 +2,5 @@ class Urgencia {
   int id = 0;
   String nombre = "";
   String color = "";
-  Urgencia(i, n, c) {
-    id = i;
-    nombre = n;
-    color = c;
-  }
+  Urgencia(this.id, this.nombre, this.color);
 }

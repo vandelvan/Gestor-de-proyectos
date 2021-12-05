@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:gestor_de_proyectos/area.dart';
 import 'package:gestor_de_proyectos/cliente.dart';
+import 'package:gestor_de_proyectos/tareas.dart';
 import 'package:intl/intl.dart';
 import 'package:gestor_de_proyectos/connection.dart';
 import 'package:gestor_de_proyectos/project.dart';
@@ -24,6 +25,7 @@ class _ProyectosState extends State<Proyectos> {
     getClientes().then((value) => clientes = value);
     getAreas().then((value) => areas = value);
     final _user = ModalRoute.of(context)!.settings.arguments as User;
+    getLastProyecto().then((value) => last = value);
     return WillPopScope(
       onWillPop: () async => false,
       child: FutureBuilder(
@@ -32,169 +34,166 @@ class _ProyectosState extends State<Proyectos> {
               AsyncSnapshot<List<Project>> _snapproyectos) {
             if (_snapproyectos.hasData) {
               List<Project> _proyectos = _snapproyectos.data!;
-              last = _proyectos.last.id;
-              return SafeArea(
-                child: Scaffold(
-                  appBar: AppBar(
-                    title: const Text("Lista de Proyectos"),
-                    leading: IconButton(
-                      icon: const Icon(
-                        Icons.person,
-                      ),
-                      onPressed: () {
-                        Navigator.pushNamed(context, 'usuarios/');
-                      },
-                    ),
-                  ),
-                  body: _proyectos.isNotEmpty
-                      ? ListView.builder(
-                          itemCount: _proyectos.length,
-                          itemBuilder: (BuildContext context, int i) {
-                            return Card(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  ListTile(
-                                    leading: const Icon(Icons.bar_chart),
-                                    title: Text(_proyectos[i].nombre),
-                                    subtitle: Text(_proyectos[i].desc +
-                                        '\nArea: ' +
-                                        _proyectos[i].area +
-                                        '\nCliente: ' +
-                                        _proyectos[i].client +
-                                        '\nEntrega: ' +
-                                        DateFormat('dd/MM/yyyy')
-                                            .format(_proyectos[i].entrega)),
-                                    trailing: _user.rol == 1
-                                        ? PopupMenuButton(
-                                            itemBuilder: (context) => [
-                                              const PopupMenuItem(
-                                                child: Text("Ver"),
-                                                value: 1,
-                                              ),
-                                              const PopupMenuItem(
-                                                child: Text("Editar"),
-                                                value: 2,
-                                              ),
-                                              const PopupMenuItem(
-                                                child: Text(
-                                                  "Eliminar",
-                                                  style: TextStyle(
-                                                    color: Colors.redAccent,
-                                                  ),
+              return _proyectos.isNotEmpty
+                  ? Scaffold(
+                      floatingActionButton: _user.rol == 1
+                          ? FloatingActionButton(
+                              onPressed: () async {
+                                await _projDialog(
+                                    Project(
+                                        0,
+                                        "",
+                                        "",
+                                        clientes.first.id,
+                                        "",
+                                        areas.first.id,
+                                        "",
+                                        DateTime.now(),
+                                        0.0),
+                                    _user.nombre);
+                                setState(() {});
+                              },
+                              child: const Icon(Icons.add_chart),
+                            )
+                          : null,
+                      body: ListView.builder(
+                        itemCount: _proyectos.length,
+                        itemBuilder: (BuildContext context, int i) {
+                          return Card(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                ListTile(
+                                  leading: const Icon(Icons.bar_chart),
+                                  title: Text(_proyectos[i].nombre),
+                                  subtitle: Text(_proyectos[i].desc +
+                                      '\nArea: ' +
+                                      _proyectos[i].area +
+                                      '\nCliente: ' +
+                                      _proyectos[i].client +
+                                      '\nEntrega: ' +
+                                      DateFormat('dd/MM/yyyy')
+                                          .format(_proyectos[i].entrega)),
+                                  trailing: _user.rol == 1
+                                      ? PopupMenuButton(
+                                          itemBuilder: (context) => [
+                                            const PopupMenuItem(
+                                              child: Text("Ver"),
+                                              value: 1,
+                                            ),
+                                            const PopupMenuItem(
+                                              child: Text("Editar"),
+                                              value: 2,
+                                            ),
+                                            const PopupMenuItem(
+                                              child: Text(
+                                                "Eliminar",
+                                                style: TextStyle(
+                                                  color: Colors.redAccent,
                                                 ),
-                                                value: 3,
                                               ),
-                                            ],
-                                            onSelected: (result) async {
-                                              if (result == 1) {
-                                                Navigator.pushNamed(
-                                                  context,
-                                                  'tareas/',
-                                                );
-                                              } else if (result == 2) {
-                                                await _projDialog(_proyectos[i],
-                                                    _user.nombre);
-
+                                              value: 3,
+                                            ),
+                                          ],
+                                          onSelected: (result) async {
+                                            if (result == 1) {
+                                              Navigator.pushNamed(
+                                                      context, 'tareas/',
+                                                      arguments: TArgs(
+                                                          _user,
+                                                          _proyectos[i].id,
+                                                          _proyectos[i].nombre))
+                                                  .then((value) {
                                                 setState(() {});
-                                              } else {
-                                                showDialog(
-                                                  context: context,
-                                                  barrierDismissible: false,
-                                                  builder:
-                                                      (BuildContext context) {
-                                                    return AlertDialog(
-                                                      title: const Text(
-                                                          'Esta seguro?'),
-                                                      content:
-                                                          SingleChildScrollView(
-                                                        child: ListBody(
-                                                          children: const <
-                                                              Widget>[
-                                                            Icon(
-                                                              Icons.warning,
-                                                            ),
-                                                            Padding(
-                                                              padding:
-                                                                  EdgeInsets
-                                                                      .all(8.0),
-                                                              child: Center(
-                                                                child: Text(
-                                                                  'Esta accion es irreversible',
-                                                                ),
+                                              });
+                                            } else if (result == 2) {
+                                              await _projDialog(
+                                                  _proyectos[i], _user.nombre);
+
+                                              setState(() {});
+                                            } else {
+                                              showDialog(
+                                                context: context,
+                                                barrierDismissible: false,
+                                                builder:
+                                                    (BuildContext context) {
+                                                  return AlertDialog(
+                                                    title: const Text(
+                                                        'Esta seguro?'),
+                                                    content:
+                                                        SingleChildScrollView(
+                                                      child: ListBody(
+                                                        children: const <
+                                                            Widget>[
+                                                          Icon(
+                                                            Icons.warning,
+                                                          ),
+                                                          Padding(
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                    8.0),
+                                                            child: Center(
+                                                              child: Text(
+                                                                'Esta accion es irreversible',
                                                               ),
                                                             ),
-                                                          ],
-                                                        ),
+                                                          ),
+                                                        ],
                                                       ),
-                                                      actions: <Widget>[
-                                                        TextButton(
-                                                          child:
-                                                              const Text('No'),
-                                                          onPressed: () {
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop();
-                                                          },
-                                                        ),
-                                                        TextButton(
-                                                          child:
-                                                              const Text('Si'),
-                                                          onPressed: () {
-                                                            eliminarProyecto(
-                                                                _proyectos[i]
-                                                                    .id,
-                                                                _user.username);
-                                                            setState(() {});
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop();
-                                                          },
-                                                        ),
-                                                      ],
-                                                    );
-                                                  },
-                                                );
-                                              }
-                                            },
-                                          )
-                                        : null,
-                                    onTap: () => Navigator.pushNamed(
-                                      context,
-                                      'tareas/',
-                                    ),
-                                  ),
-                                  Text(
-                                      "${(_proyectos[i].porcentaje.toInt() * 100).toString()}% completo"),
-                                  LinearProgressIndicator(
-                                    color:
-                                        Theme.of(context).colorScheme.secondary,
-                                    value: _proyectos[i].porcentaje,
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        )
-                      : const Center(
-                          child: Text("No hay proyectos aquí..."),
-                        ),
-                  floatingActionButton: _user.rol == 1
-                      ? FloatingActionButton(
-                          onPressed: () async {
-                            await _projDialog(
-                                Project(0, "", "", clientes.first.id, "",
-                                    areas.first.id, "", DateTime.now(), 0.0),
-                                _user.nombre);
-                            setState(() {});
-                          },
-                          child: const Icon(
-                            Icons.add_chart,
-                          ),
-                        )
-                      : null,
-                ),
-              );
+                                                    ),
+                                                    actions: <Widget>[
+                                                      TextButton(
+                                                        child: const Text('No'),
+                                                        onPressed: () {
+                                                          Navigator.of(context)
+                                                              .pop();
+                                                        },
+                                                      ),
+                                                      TextButton(
+                                                        child: const Text('Si'),
+                                                        onPressed: () {
+                                                          eliminarProyecto(
+                                                              _proyectos[i].id,
+                                                              _user.username);
+                                                          setState(() {});
+                                                          Navigator.of(context)
+                                                              .pop();
+                                                        },
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              );
+                                            }
+                                          },
+                                        )
+                                      : null,
+                                  onTap: () => Navigator.pushNamed(
+                                          context, 'tareas/',
+                                          arguments: TArgs(
+                                              _user,
+                                              _proyectos[i].id,
+                                              _proyectos[i].nombre))
+                                      .then((value) {
+                                    setState(() {});
+                                  }),
+                                ),
+                                Text(
+                                    "${(_proyectos[i].porcentaje * 100).toInt().toString()}% completo"),
+                                LinearProgressIndicator(
+                                  color:
+                                      Theme.of(context).colorScheme.secondary,
+                                  value: _proyectos[i].porcentaje,
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                  : const Center(
+                      child: Text("No hay proyectos aquí..."),
+                    );
             } else if (_snapproyectos.hasError) {
               return Column(
                 children: <Widget>[

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gestor_de_proyectos/login.dart';
-import 'package:gestor_de_proyectos/proyectos.dart';
 import 'package:gestor_de_proyectos/tareas.dart';
 import 'package:gestor_de_proyectos/usuarios.dart';
+
+import 'package:gestor_de_proyectos/home.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,7 +34,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const LogIn(),
-        'proyectos/': (context) => const Proyectos(),
+        'home/': (context) => const Home(),
         'tareas/': (context) => const Tareas(),
         'usuarios/': (context) => const Usuarios(),
       },
