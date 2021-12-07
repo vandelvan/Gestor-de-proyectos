@@ -15,8 +15,9 @@ import 'task.dart';
 class TArgs {
   final User user;
   final int pid;
+  final int idu;
   final String nombre;
-  TArgs(this.user, this.pid, this.nombre);
+  TArgs(this.user, this.pid, this.idu, this.nombre);
 }
 
 class Tareas extends StatefulWidget {
@@ -27,6 +28,7 @@ class Tareas extends StatefulWidget {
 }
 
 class _TareasState extends State<Tareas> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   int pid = 0;
   List<Cliente> empleados = [];
   List<Urgencia> urgencias = [];
@@ -34,15 +36,16 @@ class _TareasState extends State<Tareas> {
   int last = 0;
   @override
   Widget build(BuildContext context) {
-    getEmpleados().then((value) => empleados = value);
-    getUrgencias().then((value) => urgencias = value);
-    getTareasGeneral().then((value) => tareas = value);
-    getLastTarea().then((value) => last = value);
     TArgs _args = ModalRoute.of(context)!.settings.arguments as TArgs;
     pid = _args.pid;
+    int idu = _args.idu;
     User _user = _args.user;
+    getEmpleados().then((value) => empleados = value);
+    getUrgencias().then((value) => urgencias = value);
+    getTareasGeneral(pid, 0).then((value) => tareas = value);
+    getLastTarea().then((value) => last = value);
     return FutureBuilder(
-        future: getTareas(pid),
+        future: getTareas(pid, idu),
         builder: (BuildContext context, AsyncSnapshot<List<Task>> _snaptareas) {
           if (_snaptareas.hasData) {
             List<Task> _tareas = _snaptareas.data!;
@@ -105,12 +108,12 @@ class _TareasState extends State<Tareas> {
                                                       "Marcar completada"),
                                               value: 2,
                                             ),
-                                            if (_user.rol == 1)
+                                            if (_user.rol == 1 && idu == 0)
                                               const PopupMenuItem(
                                                 child: Text("Editar"),
                                                 value: 3,
                                               ),
-                                            if (_user.rol == 1)
+                                            if (_user.rol == 1 && idu == 0)
                                               const PopupMenuItem(
                                                 child: Text(
                                                   "Eliminar",
@@ -126,6 +129,9 @@ class _TareasState extends State<Tareas> {
                                               await _taskDialog(
                                                   _tareas[i], _user.nombre, 2);
 
+                                              await getTareasGeneral(pid, 0)
+                                                  .then((value) =>
+                                                      tareas = value);
                                               setState(() {});
                                             } else if (result == 2) {
                                               await checkTarea(
@@ -137,6 +143,9 @@ class _TareasState extends State<Tareas> {
                                               await _taskDialog(
                                                   _tareas[i], _user.nombre, 3);
 
+                                              await getTareasGeneral(pid, 0)
+                                                  .then((value) =>
+                                                      tareas = value);
                                               setState(() {});
                                             } else {
                                               showDialog(
@@ -196,8 +205,13 @@ class _TareasState extends State<Tareas> {
                                           },
                                         )
                                       : null,
-                                  onTap: () =>
-                                      _taskDialog(_tareas[i], _user.nombre, 2),
+                                  onTap: () async {
+                                    _taskDialog(_tareas[i], _user.nombre, 2);
+
+                                    await getTareasGeneral(pid, 0)
+                                        .then((value) => tareas = value);
+                                    setState(() {});
+                                  },
                                 ),
                               ],
                             ),
@@ -207,14 +221,16 @@ class _TareasState extends State<Tareas> {
                     : const Center(
                         child: Text("No hay tareas aquí..."),
                       ),
-                floatingActionButton: _user.rol == 1
+                floatingActionButton: _user.rol == 1 && idu == 0
                     ? FloatingActionButton(
                         onPressed: () async {
                           await _taskDialog(
-                              Task(1, 0, "", "", 1, "", "", DateTime.now(),
-                                  false, []),
+                              Task(tareas.first.idtarea, 0, "", "", 1, "", "",
+                                  DateTime.now(), false, []),
                               _user.nombre,
                               1);
+                          await getTareasGeneral(pid, 0)
+                              .then((value) => tareas = value);
                           setState(() {});
                         },
                         child: const Icon(
@@ -252,13 +268,9 @@ class _TareasState extends State<Tareas> {
 
   _taskDialog(Task tarea, String _usuario, int _mode) async {
     if (tareas.isEmpty) {
-      SnackBar(
-        content: const Text('Primero deben existir tareas'),
-        action: SnackBarAction(
-          label: 'Action',
-          onPressed: () {
-            // Code to execute.
-          },
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Primero deben existir tareas'),
         ),
       );
       return;
@@ -274,7 +286,6 @@ class _TareasState extends State<Tareas> {
     }
     DateTime _entrega = tarea.entrega;
     bool _completo = tarea.completado;
-    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
     String _modo = "";
     if (_mode == 1) {
       _modo = "Nueva";
@@ -284,6 +295,8 @@ class _TareasState extends State<Tareas> {
         _modo = "Editar";
       }
       _id = tarea.idtareap.toString();
+      await getTareasGeneral(pid, tarea.idtarea)
+          .then((value) => tareas = value);
     }
     return showDialog(
       context: context,
@@ -416,36 +429,38 @@ class _TareasState extends State<Tareas> {
                             children: [
                               TextButton(
                                 onPressed: () {
-                                  Navigator.pop(context);
+                                  Navigator.pop(context, true);
                                 },
                                 child: const Text("Cancelar"),
                               ),
                               TextButton(
                                 onPressed: () {
-                                  if (_mode == 1) {
-                                    crearTarea(
-                                      int.parse(_id),
-                                      _tarea,
-                                      pid,
-                                      _urgencia,
-                                      _entrega,
-                                      _completo,
-                                      _usuario,
-                                      _empleadosL,
-                                    );
-                                  } else if (_mode == 2) {
-                                  } else {
-                                    editarTarea(
+                                  if (_formKey.currentState!.validate()) {
+                                    if (_mode == 1) {
+                                      crearTarea(
                                         int.parse(_id),
                                         _tarea,
+                                        pid,
                                         _urgencia,
                                         _entrega,
                                         _completo,
                                         _usuario,
                                         _empleadosL,
-                                        tarea.asignados);
+                                      );
+                                    } else if (_mode == 2) {
+                                    } else {
+                                      editarTarea(
+                                          int.parse(_id),
+                                          _tarea,
+                                          _urgencia,
+                                          _entrega,
+                                          _completo,
+                                          _usuario,
+                                          _empleadosL,
+                                          tarea.asignados);
+                                    }
+                                    Navigator.pop(context, true);
                                   }
-                                  Navigator.pop(context, true);
                                 },
                                 child: const Text("Guardar"),
                               ),

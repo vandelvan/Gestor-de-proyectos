@@ -17,6 +17,7 @@ class Proyectos extends StatefulWidget {
 }
 
 class _ProyectosState extends State<Proyectos> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   List<Cliente> clientes = [];
   List<Area> areas = [];
   int last = 0;
@@ -102,6 +103,7 @@ class _ProyectosState extends State<Proyectos> {
                                                       arguments: TArgs(
                                                           _user,
                                                           _proyectos[i].id,
+                                                          0,
                                                           _proyectos[i].nombre))
                                                   .then((value) {
                                                 setState(() {});
@@ -173,6 +175,7 @@ class _ProyectosState extends State<Proyectos> {
                                           arguments: TArgs(
                                               _user,
                                               _proyectos[i].id,
+                                              0,
                                               _proyectos[i].nombre))
                                       .then((value) {
                                     setState(() {});
@@ -226,7 +229,6 @@ class _ProyectosState extends State<Proyectos> {
     int _area = proyecto.idarea;
     int _cliente = proyecto.idcliente;
     DateTime _entrega = proyecto.entrega;
-    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
     final _nom = TextEditingController(text: proyecto.nombre);
     final _desc = TextEditingController(text: proyecto.desc);
     String _modo = "";
@@ -361,20 +363,22 @@ class _ProyectosState extends State<Proyectos> {
                               ),
                               TextButton(
                                 onPressed: () {
-                                  if (proyecto.id == 0) {
-                                    crearProyecto(_nom.text, _desc.text, _area,
-                                        _cliente, _entrega, _usuario);
-                                  } else {
-                                    editarProyecto(
-                                        proyecto.id,
-                                        _nom.text,
-                                        _desc.text,
-                                        _area,
-                                        _cliente,
-                                        _entrega,
-                                        _usuario);
+                                  if (_formKey.currentState!.validate()) {
+                                    if (proyecto.id == 0) {
+                                      crearProyecto(_nom.text, _desc.text,
+                                          _area, _cliente, _entrega, _usuario);
+                                    } else {
+                                      editarProyecto(
+                                          proyecto.id,
+                                          _nom.text,
+                                          _desc.text,
+                                          _area,
+                                          _cliente,
+                                          _entrega,
+                                          _usuario);
+                                    }
+                                    Navigator.pop(context, true);
                                   }
-                                  Navigator.pop(context, true);
                                 },
                                 child: const Text("Guardar"),
                               ),

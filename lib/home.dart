@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestor_de_proyectos/proyectos.dart';
+import 'package:gestor_de_proyectos/tareas.dart';
 import 'package:gestor_de_proyectos/tareas_general.dart';
 import 'package:gestor_de_proyectos/user.dart';
 
@@ -49,9 +50,23 @@ class _HomeState extends State<Home> {
                   Icons.person,
                 ),
                 onPressed: () {
-                  Navigator.pushNamed(context, 'usuarios/');
+                  Navigator.pushNamed(context, 'usuarios/', arguments: _user);
                 },
               ),
+              actions: [
+                IconButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, 'tareas/',
+                            arguments: TArgs(_user, 0, _user.id, "Mis tareas"))
+                        .then((value) {
+                      setState(() {});
+                    });
+                  },
+                  icon: const Icon(
+                    Icons.my_library_books,
+                  ),
+                ),
+              ],
             ),
             body: _pags.elementAt(_i)),
       ),

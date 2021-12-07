@@ -12,10 +12,10 @@ class LogIn extends StatefulWidget {
 }
 
 class _LogInState extends State<LogIn> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {
     open();
-    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
     final _user = TextEditingController();
     final _pass = TextEditingController();
     bool _loading = false;

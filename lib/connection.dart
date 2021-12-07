@@ -54,7 +54,7 @@ Future<User> login(user, pass) async {
       nombre,
       correo,
       3,
-      0
+      1
     from cliente 
     where username = @user 
     and pass = @pass
@@ -75,6 +75,293 @@ Future<User> login(user, pass) async {
     }
   }
   return User(i, u, n, c, r, a);
+}
+
+//metodo que obtiene el listado de usuarios
+Future<List<User>> getUsuarios(int idu) async {
+  List<User> usuarios = [];
+  List<List<dynamic>> results = await connection.query("""select 
+      idusuario, 
+      username, 
+      nombre,
+      correo,
+      idrol, 
+      idarea 
+    from usuario 
+    where active = true and idusuario != @idu
+    order by idusuario;""", substitutionValues: {"idu": idu});
+  int i = 0;
+  String un = "";
+  String n = "";
+  String c = "";
+  int r = 0;
+  int a = 0;
+  if (results.isNotEmpty) {
+    for (var u in results) {
+      i = u[0];
+      un = u[1];
+      n = u[2];
+      c = u[3];
+      r = u[4];
+      a = u[5];
+      usuarios.add(User(i, un, n, c, r, a));
+    }
+  }
+  results = await connection.query(
+    """select 
+      idcliente, 
+      username,
+      nombre,
+      correo,
+      3,
+      1
+    from cliente 
+    where active = true
+    order by idcliente;""",
+  );
+
+  if (results.isNotEmpty) {
+    for (var u in results) {
+      i = u[0];
+      un = u[1];
+      n = u[2];
+      c = u[3];
+      r = u[4];
+      a = u[5];
+      usuarios.add(User(i, un, n, c, r, a));
+    }
+  }
+  return usuarios;
+}
+
+//metodo para crear usuarios
+crearUsuario(String nombre, String uname, String pass, String correo, int area,
+    int rol, String usuario) async {
+  var subs = {
+    "nom": nombre,
+    "uname": uname,
+    "pass": pass,
+    "correo": correo,
+    "area": area,
+    "rol": rol,
+    "usuario": usuario
+  };
+  if (rol == 3) {
+    await connection.query(
+      """
+    insert into
+    cliente (nombre, username, pass, correo, created_by)
+    values
+    (@nom, @uname, @pass, @correo, @usuario);
+    """,
+      substitutionValues: subs,
+    );
+  } else {
+    await connection.query(
+      """
+    insert into
+    usuario (nombre, username, pass, correo, idarea, idrol, created_by)
+    values
+    (@nom, @uname, @pass, @correo, @area, @rol, @usuario);
+    """,
+      substitutionValues: subs,
+    );
+  }
+}
+
+//metodo para editar usuarios
+editarUsuario(int idu, String nombre, String uname, String pass, String correo,
+    int area, int rol, int rolprev, String usuario) async {
+  String p = "pass = @pass,";
+  var subs = {
+    "idu": idu,
+    "nombre": nombre,
+    "correo": correo,
+    "pass": pass,
+    "rol": rol,
+    "area": area,
+    "usuario": usuario
+  };
+  if (pass.isEmpty) p = "";
+  //se mantiene como cliente
+  if (rolprev == 3 && rol == 3) {
+    connection.query(
+      """
+  update cliente
+  set 
+    nombre = @nombre,
+    correo = @correo,
+    """ +
+          p +
+          """
+    edited_by = @usuario,
+    edited_date = now()
+  where idcliente = @idu;
+      """,
+      substitutionValues: subs,
+    );
+  }
+  //pasa de empleado a cliente o viceversa
+  else if ((rolprev != 3 && rol == 3) || (rolprev == 3 && rol != 3)) {
+    await eliminarUsuario(idu, rolprev, usuario);
+    await crearUsuario(nombre, uname, pass, correo, area, rol, usuario);
+  }
+  //se mantiene como empleado
+  else {
+    connection.query(
+      """
+  update usuario
+  set 
+    nombre = @nombre,
+    correo = @correo,
+    """ +
+          p +
+          """
+    idrol = @rol,
+    idarea = @area,
+    edited_by = @usuario,
+    edited_date = now()
+  where idusuario = @idu;
+      """,
+      substitutionValues: subs,
+    );
+  }
+}
+
+eliminarUsuario(int idu, int rol, String usuario) async {
+  if (rol == 3) {
+    await connection.query("""
+  update cliente
+  set 
+    active = false,
+    deleted_by = @usuario,
+    deleted_date = now()
+  where idcliente = @idu;
+  """, substitutionValues: {"idu": idu, "usuario": usuario});
+  } else {
+    await connection.query("""
+  update usuario
+  set 
+    active = false,
+    deleted_by = @usuario,
+    deleted_date = now()
+  where idusuario = @idu;
+  """, substitutionValues: {"idu": idu, "usuario": usuario});
+  }
+}
+
+Future<List<Area>> getRoles() async {
+  List<List<dynamic>> results = await connection.query(
+    """select 
+      idrol,
+      rol
+    from rol
+    where active = true;""",
+  );
+  List<Area> roles = [];
+  int i = 0;
+  String n = "";
+  if (results.isNotEmpty) {
+    for (var r in results) {
+      i = r[0];
+      n = r[1];
+      roles.add(Area(i, n));
+    }
+  }
+  return roles;
+}
+
+//metodo para obtener el ultimo id de la tabla usuario
+Future<int> getLastUsuario() async {
+  List<List<dynamic>> results = await connection.query("""
+  select coalesce (max(idusuario),0) from usuario;
+  """);
+  if (results.isNotEmpty) {
+    return results[0][0];
+  }
+  return 0;
+}
+
+//metodo para obtener el ultimo id de la tabla usuario
+Future<int> getLastCliente() async {
+  List<List<dynamic>> results = await connection.query("""
+  select coalesce (max(idcliente),0) from cliente;
+  """);
+  if (results.isNotEmpty) {
+    return results[0][0];
+  }
+  return 0;
+}
+
+//metodo que valida si el nombre de usuario es valido
+Future<bool> validUsuario(String username) async {
+  List<List<dynamic>> results = await connection.query(
+    """select 
+      idusuario
+    from usuario 
+    where username = @user
+    and active = true;""",
+    substitutionValues: {
+      "user": username,
+    },
+  );
+  if (results.isNotEmpty) {
+    return false;
+  }
+  results = await connection.query(
+    """select 
+      idcliente
+    from cliente 
+    where username = @user
+    and active = true;""",
+    substitutionValues: {
+      "user": username,
+    },
+  );
+  if (results.isNotEmpty) {
+    return false;
+  }
+  return true;
+}
+
+//metodo para obtener el ultimo id de la tabla area
+Future<int> getLastArea() async {
+  List<List<dynamic>> results = await connection.query("""
+  select coalesce (max(idarea),0) from area;
+  """);
+  if (results.isNotEmpty) {
+    return results[0][0];
+  }
+  return 0;
+}
+
+//metodo para crear un area
+crearArea(String nombre, String user) async {
+  await connection.query(
+    """
+  insert into area (nombre, created_by)
+  values (@n,@u);
+  """,
+    substitutionValues: {"n": nombre, "u": user},
+  );
+}
+
+//metodo para validar un area
+Future<bool> validArea(String area) async {
+  List<List<dynamic>> results = await connection.query(
+    """select 
+      idarea
+    from area 
+    where nombre = @area
+    and active = true;""",
+    substitutionValues: {
+      "area": area,
+    },
+  );
+  if (results.isNotEmpty) {
+    return false;
+  }
+  return true;
 }
 
 /* METODOS DE PROYECTOS*/
@@ -298,14 +585,24 @@ Future<List<Urgencia>> getUrgencias() async {
 }
 
 //metodo para obtener las tareas (generales)
-Future<List<Task>> getTareasGeneral() async {
+Future<List<Task>> getTareasGeneral(int idp, int idt) async {
+  List<Task> tp = [];
+  String and = "";
+  if (idp != 0) {
+    await getTareas(idp, 0).then((value) => tp = value);
+  }
+  for (var t in tp) {
+    if (t.idtarea != idt) {
+      and += " and t.idtarea != ${t.idtarea} ";
+    }
+  }
   List<List<dynamic>> results = await connection.query(
     """select 
       t.idtarea,
       t.nombre,
       t.descripcion
     from tarea t
-    where t.active = true;""",
+    where t.active = true $and;""",
   );
   List<Task> tareas = [];
   int i = 0;
@@ -330,9 +627,27 @@ Future<List<Task>> getTareasGeneral() async {
 }
 
 //metodo para obtener las tareas (por proyecto)
-Future<List<Task>> getTareas(int idp) async {
-  List<List<dynamic>> results = await connection.query(
-    """select 
+Future<List<Task>> getTareas(int idp, int idu) async {
+  String query = "";
+  if (idu != 0) {
+    query = """select 
+      t.idtarea,
+      pt.idproyecto_tarea,
+      t.nombre,
+      t.descripcion,
+      u.idurgencia,
+      u.nombre,
+      u.color,
+      pt.entrega,
+      pt.completo
+    from tarea t
+	join proyecto_tarea pt on (pt.idtarea = t.idtarea)
+    join urgencia u on (u.idurgencia = pt.idurgencia)
+    join usuario_tarea ut on (ut.idtarea = pt.idproyecto_tarea)
+    where ut.idusuario = @idu and pt.active = true and ut.active = true
+    order by u.idurgencia desc, pt.completo;""";
+  } else {
+    query = """select 
       t.idtarea,
       pt.idproyecto_tarea,
       t.nombre,
@@ -346,8 +661,11 @@ Future<List<Task>> getTareas(int idp) async {
 	join proyecto_tarea pt on (pt.idtarea = t.idtarea)
     join urgencia u on (u.idurgencia = pt.idurgencia)
     where pt.idproyecto = @idp and pt.active = true
-    order by u.idurgencia desc, pt.completo;""",
-    substitutionValues: {"idp": idp},
+    order by u.idurgencia desc, pt.completo;""";
+  }
+  List<List<dynamic>> results = await connection.query(
+    query,
+    substitutionValues: {"idp": idp, "idu": idu},
   );
   List<Task> tareas = [];
   int i = 0;

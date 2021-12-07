@@ -1,14 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:gestor_de_proyectos/urgencia.dart';
 import 'package:gestor_de_proyectos/user.dart';
 import 'package:intl/intl.dart';
-import 'package:multi_select_flutter/dialog/multi_select_dialog_field.dart';
-import 'package:multi_select_flutter/util/multi_select_item.dart';
-import 'package:multi_select_flutter/util/multi_select_list_type.dart';
 
-import 'cliente.dart';
 import 'connection.dart';
 import 'task.dart';
 
@@ -20,13 +15,14 @@ class TareasGeneral extends StatefulWidget {
 }
 
 class _TareasGeneralState extends State<TareasGeneral> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   int last = 0;
   @override
   Widget build(BuildContext context) {
     User _user = ModalRoute.of(context)!.settings.arguments as User;
     getLastTareaGeneral().then((value) => last = value);
     return FutureBuilder(
-        future: getTareasGeneral(),
+        future: getTareasGeneral(0, 0),
         builder: (BuildContext context, AsyncSnapshot<List<Task>> _snaptareas) {
           if (_snaptareas.hasData) {
             List<Task> _tareas = _snaptareas.data!;
@@ -188,7 +184,6 @@ class _TareasGeneralState extends State<TareasGeneral> {
 
   _taskDialog(Task tarea, String _usuario, int _mode) async {
     String _id = "";
-    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
     final _nom = TextEditingController(text: tarea.nombre);
     final _desc = TextEditingController(text: tarea.descripcion);
     String _modo = "";
@@ -261,25 +256,27 @@ class _TareasGeneralState extends State<TareasGeneral> {
                             children: [
                               TextButton(
                                 onPressed: () {
-                                  Navigator.pop(context);
+                                  Navigator.pop(context, true);
                                 },
                                 child: const Text("Cancelar"),
                               ),
                               TextButton(
                                 onPressed: () {
-                                  if (_mode == 1) {
-                                    crearTareaGeneral(
-                                      int.parse(_id),
-                                      _nom.text,
-                                      _desc.text,
-                                      _usuario,
-                                    );
-                                  } else if (_mode == 2) {
-                                  } else {
-                                    editarTareaGeneral(tarea.idtarea, _nom.text,
-                                        _desc.text, _usuario);
+                                  if (_formKey.currentState!.validate()) {
+                                    if (_mode == 1) {
+                                      crearTareaGeneral(
+                                        int.parse(_id),
+                                        _nom.text,
+                                        _desc.text,
+                                        _usuario,
+                                      );
+                                    } else if (_mode == 2) {
+                                    } else {
+                                      editarTareaGeneral(tarea.idtarea,
+                                          _nom.text, _desc.text, _usuario);
+                                    }
+                                    Navigator.pop(context, true);
                                   }
-                                  Navigator.pop(context, true);
                                 },
                                 child: const Text("Guardar"),
                               ),
